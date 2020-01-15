@@ -24,10 +24,7 @@ namespace cw01 {
         mqtt_payload: string
         prev_mqtt_payload: string
         block: boolean
-        mqtt_topic: string
         fail_count: number
-        topics: string[]
-        topic_count: number
         topic_rcv: string
         timer: number
         att_string: boolean
@@ -52,10 +49,7 @@ namespace cw01 {
             this.mqtt_payload = ""
             this.prev_mqtt_payload = ""
             this.block = false
-            this.mqtt_topic = ""
             this.fail_count = 0
-            this.topics = []
-            this.topic_count = 0
             this.topic_rcv = ""
             this.timer = 0
             this.att_string = false
@@ -98,8 +92,8 @@ namespace cw01 {
             this.sending_payload = false
             this.sending_pingreq = false
             this.receiving_msg = false
-            this.mac_addr = ""
             this.mqtt_busy = false
+            this.mac_addr = ""
         }
     }
 
@@ -121,8 +115,8 @@ namespace cw01 {
 
     basic.showIcon(IconNames.Chessboard)
     basic.pause(2000)
-    /* serial.writeString("ATE0" + cw01_vars.NEWLINE)
-     basic.pause(300)*/
+    serial.writeString("ATE0" + cw01_vars.NEWLINE)
+    basic.pause(300)
     serial.readString()
     cw01_mqtt_vars.mac_addr = extract_mac()
     serial.writeString("AT+CWMODE_DEF=3" + cw01_vars.NEWLINE)
@@ -186,6 +180,7 @@ namespace cw01 {
         } else {
             basic.showString("D")
         }
+
     }
 
     /**
@@ -372,60 +367,41 @@ namespace cw01 {
     */
     //% weight=91
     //% group="ATT"
-    //% blockId="IoTgetATTAssetValue" block="CW01 get ATT asset %asset state"
+    //% blockId="IoTgetATTAssetValue" block="CW01 get ATT asset %asset value"
     export function IoTgetATTAssetValue(asset: string): string {
-        let att_connected: string = ""
-
         while (cw01_button_object.sending_data) {
             basic.pause(100)
         }
 
         cw01_button_object.sending_data = true
 
-
         cw01_vars.res = ""
         let index1: number
         let index2: number
         let value: string
-
-        do {
-
-            cw01_vars.asset_name = asset
-            basic.pause(100)
-            let request: string = "GET /device/" + cw01_vars.DEVICE_ID + "/asset/" + cw01_vars.asset_name + "/state" + " HTTP/1.1" + cw01_vars.NEWLINE +
-                "Host: api.allthingstalk.io" + cw01_vars.NEWLINE +
-                "User-Agent: CW01/1.0" + cw01_vars.NEWLINE +
-                "Accept: */*" + cw01_vars.NEWLINE +
-                "Authorization: Bearer " + cw01_vars.TOKEN + cw01_vars.NEWLINE + cw01_vars.NEWLINE
+        cw01_vars.asset_name = asset
+        basic.pause(100)
+        let request: string = "GET /device/" + cw01_vars.DEVICE_ID + "/asset/" + cw01_vars.asset_name + "/state" + " HTTP/1.1" + cw01_vars.NEWLINE +
+            "Host: api.allthingstalk.io" + cw01_vars.NEWLINE +
+            "User-Agent: CW01/1.0" + cw01_vars.NEWLINE +
+            "Accept: */*" + cw01_vars.NEWLINE +
+            "Authorization: Bearer " + cw01_vars.TOKEN + cw01_vars.NEWLINE + cw01_vars.NEWLINE
 
 
-            serial.writeString("AT+CIPSEND=" + (request.length + 2).toString() + cw01_vars.NEWLINE)
-            basic.pause(50)
-            serial.writeString(request + cw01_vars.NEWLINE)
-            basic.pause(1200)
-
-            att_connected = serial.readString()
-
-            if (att_connected.includes("link is not valid")) {
-                connectToATT(cw01_vars.TOKEN, cw01_vars.DEVICE_ID)
-            } else {
-                att_connected = ""
-            }
-
-            if (!att_connected.includes("link is not valid")) {
-                serial.writeString("AT+CIPRECVDATA=200" + cw01_vars.NEWLINE)
-                basic.pause(100)
-                serial.readString()
-                basic.pause(400)
-                serial.writeString("AT+CIPRECVDATA=200" + cw01_vars.NEWLINE)
-                basic.pause(400)
-                cw01_vars.res += serial.readString()
-                index1 = cw01_vars.res.indexOf("\"value\":") + "\"value\":".length
-                index2 = cw01_vars.res.indexOf("}", index1)
-                value = cw01_vars.res.substr(index1, index2 - index1)
-            }
-
-        } while (att_connected.includes("link is not valid"))
+        serial.writeString("AT+CIPSEND=" + (request.length + 2).toString() + cw01_vars.NEWLINE)
+        basic.pause(50)
+        serial.writeString(request + cw01_vars.NEWLINE)
+        basic.pause(1200)
+        serial.writeString("AT+CIPRECVDATA=200" + cw01_vars.NEWLINE)
+        basic.pause(100)
+        serial.readString()
+        basic.pause(400)
+        serial.writeString("AT+CIPRECVDATA=200" + cw01_vars.NEWLINE)
+        basic.pause(400)
+        cw01_vars.res += serial.readString()
+        index1 = cw01_vars.res.indexOf("\"value\":") + "\"value\":".length
+        index2 = cw01_vars.res.indexOf("}", index1)
+        value = cw01_vars.res.substr(index1, index2 - index1)
 
         cw01_button_object.sending_data = false
 
@@ -733,6 +709,9 @@ namespace cw01 {
 
         cw01_vars.timer = input.runningTime()
 
+        serial.writeString("AT+CIPRECVDATA=200" + cw01_vars.NEWLINE)
+        basic.pause(100)
+        serial.readString()
 
         control.inBackground(function () {
             while (true) {
@@ -757,6 +736,7 @@ namespace cw01 {
         })
 
         control.raiseEvent(EventBusSource.MICROBIT_ID_BUTTON_AB, EventBusValue.MICROBIT_BUTTON_EVT_CLICK)
+
 
 
     }
@@ -978,9 +958,51 @@ namespace cw01 {
         basic.pause(200)
 
         cw01_vars.mqtt_message = serial.readString()
+        //basic.showIcon(IconNames.Yes)
+        //basic.showString("")
+
 
         cw01_mqtt_vars.new_topic = cw01_vars.mqtt_message.substr(cw01_vars.mqtt_message.indexOf(":") + 1, topic_len)
         cw01_mqtt_vars.new_payload = cw01_vars.mqtt_message.substr(cw01_vars.mqtt_message.indexOf(":") + 1 + cw01_mqtt_vars.new_topic.length, cw01_vars.mqtt_message.length - (cw01_vars.mqtt_message.indexOf(":") + cw01_mqtt_vars.new_topic.length + 6))
+
+        /*for (let i: number = 0; i < cw01_vars.topics.length; i++) {
+            if (cw01_vars.mqtt_message.includes(cw01_vars.topics[i])) {
+                cw01_vars.topic_rcv = cw01_vars.topics[i]
+                break
+            } else {
+                continue
+            }
+        }
+ 
+        let index: number = cw01_vars.mqtt_message.indexOf(cw01_vars.topic_rcv) + cw01_vars.topic_rcv.length
+        let payload_length: number = cw01_vars.mqtt_message.length - index - 6
+        payload = cw01_vars.mqtt_message.substr(index, payload_length)
+ 
+ 
+        cw01_vars.mqtt_payload = payload
+ 
+        if (cw01_mqtt_vars.prev_payload.compare(cw01_vars.mqtt_payload) != 0) {
+            cw01_mqtt_vars.enable_event_1 = true
+        } else {
+            cw01_mqtt_vars.enable_event_1 = false
+            //cw01_mqtt_vars.new_payload = " "
+        }
+ 
+        cw01_mqtt_vars.new_payload = cw01_vars.mqtt_payload
+        //cw01_mqtt_vars.prev_payload = cw01_vars.mqtt_payload
+ 
+        if (cw01_mqtt_vars.prev_topic.compare(cw01_vars.topic_rcv) != 0) {
+            cw01_mqtt_vars.enable_event_2 = true
+        } else {
+            cw01_mqtt_vars.enable_event_2 = false
+            //cw01_mqtt_vars.new_topic = " "
+        }
+ 
+        cw01_mqtt_vars.new_topic = cw01_vars.topic_rcv
+        //cw01_mqtt_vars.prev_topic = cw01_vars.topic_rcv
+ 
+        basic.pause(100)
+        */
 
         cw01_mqtt_vars.receiving_msg = false
     }
