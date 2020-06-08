@@ -128,6 +128,10 @@ namespace cw01 {
     serial.readString();
     serial.writeString("AT+CWHOSTNAME?" + cw01_vars.NEWLINE);
 
+    let str: string = serial.readString()
+
+    basic.showString(str)
+
     read_and_set_name();
 
     function read_and_set_name(): void {
