@@ -136,7 +136,9 @@ namespace cw01 {
 
         if (!(name.includes("CW01"))) {
             serial.writeString("AT+CWHOSTNAME=\"CW01\"" + cw01_vars.NEWLINE)
-            basic.showIcon(IconNames.No)
+            basic.showNumber(0)
+            basic.showString(name)
+            basic.showNumber(1)
             control.reset()
         }
     }
