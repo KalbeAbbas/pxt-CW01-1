@@ -123,7 +123,7 @@ namespace cw01 {
     basic.pause(300)
     serial.writeString("AT+CIPRECVMODE=1" + cw01_vars.NEWLINE)
     basic.pause(300)
-    serial.writeString("AT+TEST" + cw01_vars.NEWLINE)
+    serial.writeString("AT+TEST=0" + cw01_vars.NEWLINE)
     basic.pause(300)
     serial.readString();
     serial.writeString("AT+CWHOSTNAME?" + cw01_vars.NEWLINE);
